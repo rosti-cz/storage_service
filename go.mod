@@ -8,4 +8,5 @@ require (
 	github.com/lib/pq v1.10.0
 	github.com/nats-io/nats.go v1.10.0
 	github.com/pkg/errors v0.9.1
+	github.com/stretchr/testify v1.7.0
 )

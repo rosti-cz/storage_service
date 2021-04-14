@@ -19,7 +19,8 @@ const publishTemplate = "admin.storages.%s.%s.states"   // storage_type and alia
 var config Config
 var nc *nats.Conn
 
-func init() {
+// We have to change name of this function so tests are working without being affected by this.
+func _init() {
 	err := envconfig.Process("", &config)
 	if err != nil {
 		log.Fatal(err.Error())
@@ -32,6 +33,8 @@ func init() {
 }
 
 func main() {
+	_init()
+
 	defer func() {
 		err := nc.Drain()
 		if err != nil {

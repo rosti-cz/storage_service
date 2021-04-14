@@ -25,12 +25,12 @@ func report(dbtype, alias string, stateMessage string, message Message, isError 
 	}
 }
 
-func messageHandler(m *nats.Msg) {
+func _messageHandler(m *nats.Msg) error {
 	message := Message{}
 	err := json.Unmarshal(m.Data, &message)
 	if err != nil {
 		log.Println(errors.Wrap(err, "invalid JSON data in the incoming message"))
-		return
+		return err
 	}
 	fmt.Printf("Received a message: %v\n", message)
 
@@ -67,7 +67,7 @@ func messageHandler(m *nats.Msg) {
 	} else {
 		log.Println("ERROR: database backend not found")
 		report(dbtype, alias, "wrong backend", message, true)
-		return
+		return errors.New("database backend not found")
 	}
 
 	// Message processing
@@ -78,13 +78,13 @@ func messageHandler(m *nats.Msg) {
 		if err != nil {
 			log.Println("ERROR: backend problem:", err.Error())
 			report(dbtype, alias, "backend problem", message, true)
-			return
+			return err
 		}
 		err = backend.CreateDatabase(message.DBName, message.Username, message.Extensions)
 		if err != nil {
 			log.Println("ERROR: backend problem:", err.Error())
 			report(dbtype, alias, "backend problem", message, true)
-			return
+			return err
 		}
 		report(dbtype, alias, "created", message, false)
 	}
@@ -95,7 +95,7 @@ func messageHandler(m *nats.Msg) {
 		if err != nil {
 			log.Println("ERROR: backend problem:", err.Error())
 			report(dbtype, alias, "backend problem", message, true)
-			return
+			return err
 		}
 		report(dbtype, alias, "password changed", message, false)
 	}
@@ -106,14 +106,20 @@ func messageHandler(m *nats.Msg) {
 		if err != nil {
 			log.Println("ERROR: backend problem:", err.Error())
 			report(dbtype, alias, "backend problem", message, true)
-			return
+			return err
 		}
 		err = backend.DropUser(message.Username)
 		if err != nil {
 			log.Println("ERROR: backend problem:", err.Error())
 			report(dbtype, alias, "backend problem", message, true)
-			return
+			return err
 		}
 		report(dbtype, alias, "deleted", message, false)
 	}
+
+	return nil
+}
+
+func messageHandler(msg *nats.Msg) {
+	_messageHandler(msg)
 }
