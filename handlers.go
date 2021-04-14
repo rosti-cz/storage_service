@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/nats-io/nats.go"
+	"github.com/pkg/errors"
 	"github.com/rosti-cz/storage_service/mysql"
 	"github.com/rosti-cz/storage_service/pgsql"
 )
@@ -28,7 +29,7 @@ func messageHandler(m *nats.Msg) {
 	message := Message{}
 	err := json.Unmarshal(m.Data, &message)
 	if err != nil {
-		log.Println(err)
+		log.Println(errors.Wrap(err, "invalid JSON data in the incoming message"))
 		return
 	}
 	fmt.Printf("Received a message: %v\n", message)
@@ -70,6 +71,8 @@ func messageHandler(m *nats.Msg) {
 	}
 
 	// Message processing
+
+	// Event about a new storage created
 	if message.EventType == "created" {
 		err = backend.CreateUser(message.Username, message.Password, message.DBName)
 		if err != nil {
@@ -86,6 +89,7 @@ func messageHandler(m *nats.Msg) {
 		report(dbtype, alias, "created", message, false)
 	}
 
+	// Event about changing a password for existing storage
 	if message.EventType == "password_changed" {
 		err = backend.ChangePassword(message.Username, message.Password)
 		if err != nil {
@@ -96,6 +100,7 @@ func messageHandler(m *nats.Msg) {
 		report(dbtype, alias, "password changed", message, false)
 	}
 
+	// Event about existing storage that has been deleted in the source system
 	if message.EventType == "deleted" {
 		err = backend.DropDatabase(message.DBName)
 		if err != nil {
