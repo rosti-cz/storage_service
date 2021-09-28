@@ -87,6 +87,25 @@ func (p *PGSQLBackend) CreateUser(user, password, database string) error {
 	return p.execute(sql)
 }
 
+func (p *PGSQLBackend) CreateROUser(user, password, database string) error {
+	sqls := []string{
+		fmt.Sprintf("CREATE USER %s WITH PASSWORD '%s';", user, password),
+		fmt.Sprintf("GRANT CONNECT ON DATABASE %s TO %s;", database, user),
+		fmt.Sprintf("GRANT USAGE ON SCHEMA %s TO %s;", database, user),
+		fmt.Sprintf("GRANT SELECT ON ALL TABLES IN SCHEMA %s TO %s;", database, user),
+		fmt.Sprintf("ALTER DEFAULT PRIVILEGES IN SCHEMA %s GRANT SELECT ON TABLES TO %s;", database, user),
+	}
+
+	for _, sql := range sqls {
+		err := p.execute(sql)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (p *PGSQLBackend) CreateDatabase(database, owner string, extensions []string) error {
 	if p.testValue(owner) != nil {
 		return errors.New("invalid format of owner")

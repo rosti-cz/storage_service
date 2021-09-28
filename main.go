@@ -26,7 +26,12 @@ func _init() {
 		log.Fatal(err.Error())
 	}
 
-	nc, err = nats.Connect(config.NATSURL)
+	if config.NATSToken != "" {
+		nc, err = nats.Connect(config.NATSURL, nats.Token(config.NATSToken))
+	} else {
+		nc, err = nats.Connect(config.NATSURL)
+	}
+
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -59,8 +64,13 @@ func main() {
 		subject := fmt.Sprintf(subscribeTemplate, databaseParts[1], databaseParts[0])
 
 		log.Println("Listening for " + subject)
-		nc.Subscribe(subject, messageHandler)
+		_, err := nc.Subscribe(subject, messageHandler)
+		if err != nil {
+			log.Println("Subscribe error:", err)
+		}
 	}
+
+	// runtime.Goexit()
 
 	fmt.Print("Press 'Enter' to exit...")
 	bufio.NewReader(os.Stdin).ReadBytes('\n')

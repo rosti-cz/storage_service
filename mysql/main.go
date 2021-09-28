@@ -69,6 +69,34 @@ func (m *MySQLBackend) escape(value string) string {
 	return value
 }
 
+func (m *MySQLBackend) CreateROUser(user, password, database string) error {
+	if m.testValue(user) != nil {
+		return errors.New("invalid format of username")
+	}
+	if m.testValue(database) != nil {
+		return errors.New("invalid format of database")
+	}
+
+	if err := m.connect(); err != nil {
+		return err
+	}
+	defer m.close()
+
+	sqls := []string{
+		"CREATE USER '" + user + "'@'%' IDENTIFIED BY '" + m.escape(password) + "';",
+		"GRANT SELECT PRIVILEGES ON " + database + ".* TO '" + user + "'@'%';",
+	}
+
+	for _, sql := range sqls {
+		err := m.execute(sql)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (m *MySQLBackend) CreateUser(user, password, database string) error {
 	if m.testValue(user) != nil {
 		return errors.New("invalid format of username")

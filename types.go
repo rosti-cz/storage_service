@@ -7,7 +7,9 @@ type Message struct {
 	DBID       int      `json:"db_id"`
 	DBName     string   `json:"db_name"`
 	Username   string   `json:"username"`
+	UsernameRO string   `json:"username_ro"`
 	Password   string   `json:"password"`
+	PasswordRO string   `json:"password_ro"`
 	Extensions []string `json:"extensions"`
 }
 
@@ -24,6 +26,7 @@ type State struct {
 // Backend is interface to handle databases
 type Backend interface {
 	CreateUser(user, password, database string) error
+	CreateROUser(user, password, database string) error
 	CreateDatabase(database, owner string, extensions []string) error
 	ChangePassword(user, password string) error
 	DropUser(user string) error

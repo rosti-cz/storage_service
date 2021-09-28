@@ -13,6 +13,7 @@ type DatabaseLine struct {
 
 type Config struct {
 	NATSURL   string `envconfig:"NATS_URL" required:"true"`
+	NATSToken string `envconfig:"NATS_TOKEN" required:"false"`
 	Databases string `envconfig:"DATABASES" required:"true"` // alias:dbtype:hostname:port:username:password separated by semicolon
 }
 

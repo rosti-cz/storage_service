@@ -86,6 +86,17 @@ func _messageHandler(m *nats.Msg) error {
 			report(dbtype, alias, "backend problem", message, true)
 			return err
 		}
+
+		// Create RO user if we have info to do it
+		if len(message.UsernameRO) > 0 && len(message.PasswordRO) > 0 {
+			err = backend.CreateROUser(message.Username, message.Password, message.DBName)
+			if err != nil {
+				log.Println("ERROR: backend problem:", err.Error())
+				report(dbtype, alias, "backend problem", message, true)
+				return err
+			}
+		}
+
 		report(dbtype, alias, "created", message, false)
 	}
 
