@@ -1,13 +1,14 @@
 package main
 
 import (
-	"bufio"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/kelseyhightower/envconfig"
 	"github.com/nats-io/nats.go"
@@ -18,6 +19,7 @@ const publishTemplate = "admin.storages.%s.%s.states"   // storage_type and alia
 
 var config Config
 var nc *nats.Conn
+var metrics Metrics = Metrics{}
 
 // We have to change name of this function so tests are working without being affected by this.
 func _init() {
@@ -32,8 +34,34 @@ func _init() {
 		nc, err = nats.Connect(config.NATSURL)
 	}
 
+	metrics.Service = config.MetricsIdent
+
 	if err != nil {
 		log.Fatalln(err)
+	}
+}
+
+// sends metrics to NATS
+func sentMetrics(nc *nats.Conn, subject string) {
+	metrics.Service = config.MetricsIdent
+
+	receiverMetrics := ReceiverMetric{
+		Service: config.MetricsIdent,
+		Lines: []string{
+			"# HELP storage_service_messages Number of received messages in the current session",
+			"# TYPE storage_service_messages counter",
+			fmt.Sprintf("storage_service_messages{service=\"%s\"} %d", config.MetricsIdent, metrics.Messages),
+		},
+	}
+
+	data, err := json.Marshal(receiverMetrics)
+	if err != nil {
+		log.Println("ERROR: metrics sending:", err)
+	}
+
+	err = nc.Publish(subject, data)
+	if err != nil {
+		log.Println("ERROR: metrics sending:", err)
 	}
 }
 
@@ -47,17 +75,16 @@ func main() {
 		}
 	}()
 
+	// Share metrics with the ecosystem
+	go func() {
+		for {
+			sentMetrics(nc, config.NATSMetricsSubject)
+			time.Sleep(15 * time.Second)
+		}
+	}()
+
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-
-	go func() {
-		<-sigs
-		err := nc.Drain()
-		if err != nil {
-			log.Fatalln(err)
-		}
-		os.Exit(0)
-	}()
 
 	for _, database := range strings.Split(config.Databases, ";") {
 		databaseParts := strings.Split(database, ":")
@@ -72,6 +99,10 @@ func main() {
 
 	// runtime.Goexit()
 
-	fmt.Print("Press 'Enter' to exit...")
-	bufio.NewReader(os.Stdin).ReadBytes('\n')
+	<-sigs
+	err := nc.Drain()
+	if err != nil {
+		log.Println(err)
+	}
+	os.Exit(0)
 }

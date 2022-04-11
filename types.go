@@ -32,3 +32,15 @@ type Backend interface {
 	DropUser(user string) error
 	DropDatabase(database string) error
 }
+
+// Metrics is used to share status of the service with the ecosystem
+type Metrics struct {
+	Messages int    `json:"messages"`
+	Service  string `json:"service"`
+}
+
+// Structure for metrics message compatible with metrics-receiver
+type ReceiverMetric struct {
+	Lines   []string `json:"lines"` // prometheus like metrics, one per line
+	Service string   `json:"service"`
+}

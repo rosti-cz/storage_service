@@ -26,6 +26,8 @@ func report(dbtype, alias string, stateMessage string, message Message, isError 
 }
 
 func _messageHandler(m *nats.Msg) error {
+	metrics.Messages += 1
+
 	message := Message{}
 	err := json.Unmarshal(m.Data, &message)
 	if err != nil {

@@ -12,9 +12,11 @@ type DatabaseLine struct {
 }
 
 type Config struct {
-	NATSURL   string `envconfig:"NATS_URL" required:"true"`
-	NATSToken string `envconfig:"NATS_TOKEN" required:"false"`
-	Databases string `envconfig:"DATABASES" required:"true"` // alias:dbtype:hostname:port:username:password separated by semicolon
+	NATSURL            string `envconfig:"NATS_URL" required:"true"`
+	NATSToken          string `envconfig:"NATS_TOKEN" required:"false"`
+	Databases          string `envconfig:"DATABASES" required:"true"` // alias:dbtype:hostname:port:username:password separated by semicolon
+	NATSMetricsSubject string `envconfig:"NATS_METRICS_SUBJECT" required:"true" default:"svc.metrics"`
+	MetricsIdent       string `envconfig:"METRICS_IDENT" required:"true" default:"storage_service"`
 }
 
 func (c *Config) DatabasesMap() map[string]DatabaseLine {
